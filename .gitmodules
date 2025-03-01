@@ -1,0 +1,9 @@
+[submodule "SetLister"]
+	path = SetLister
+	url = https://github.com/ChaseBowen620/SetLister.git
+[submodule "Front_End"]
+	path = Front_End
+	url = https://github.com/ChaseBowen620/Front_End.git
+[submodule "Back_End"]
+	path = Back_End
+	url = https://github.com/ChaseBowen620/Back_End.git
