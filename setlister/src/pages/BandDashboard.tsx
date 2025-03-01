@@ -74,7 +74,10 @@ const BandDashboard = () => {
   };
 
   const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -87,11 +90,22 @@ const BandDashboard = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to search tracks');
+        if (response.status === 401) {
+          setError('Please reconnect your Spotify account');
+        } else {
+          throw new Error('Failed to search tracks');
+        }
+        return;
       }
 
       const data = await response.json();
-      const tracks: Song[] = data.tracks.items.map((item: any) => ({
+      if (!data.tracks || !data.tracks.items || !data.tracks.items.length) {
+        setSearchResults([]);
+        setError('No songs found matching your search');
+        return;
+      }
+
+      const tracks: Song[] = data.tracks.items.slice(0, 5).map((item: any) => ({
         id: item.id,
         name: item.name,
         artist: item.artists[0].name,
@@ -100,8 +114,8 @@ const BandDashboard = () => {
 
       setSearchResults(tracks);
     } catch (err) {
-      setError('Failed to search tracks. Please try again.');
       console.error('Search error:', err);
+      setError('Failed to search tracks. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -420,7 +434,7 @@ const BandDashboard = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   InputProps={{
-                    endAdornment: (
+                    endAdornment: searchQuery && (
                       <IconButton
                         size="small"
                         onClick={handleClearSearch}
@@ -434,7 +448,7 @@ const BandDashboard = () => {
                 <Button 
                   variant="contained" 
                   onClick={handleSearch}
-                  disabled={isLoading}
+                  disabled={isLoading || !searchQuery.trim()}
                 >
                   {isLoading ? <CircularProgress size={24} /> : 'Search'}
                 </Button>
@@ -451,9 +465,20 @@ const BandDashboard = () => {
                         />
                         <Button 
                           onClick={() => handleAddSong(song)}
-                          disabled={currentSetlist.songs.length >= MAX_SONGS_PER_SETLIST}
+                          disabled={
+                            currentSetlist.songs.length >= MAX_SONGS_PER_SETLIST ||
+                            currentSetlist.songs.some(s => s.id === song.id)
+                          }
+                          color="primary"
+                          variant="contained"
+                          size="small"
                         >
-                          Add to Setlist
+                          {currentSetlist.songs.some(s => s.id === song.id) 
+                            ? 'Already Added'
+                            : currentSetlist.songs.length >= MAX_SONGS_PER_SETLIST
+                            ? 'Setlist Full'
+                            : 'Add to Setlist'
+                          }
                         </Button>
                       </ListItem>
                     ))}
